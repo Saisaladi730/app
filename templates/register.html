@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<!-- Coding By CodingNepal - www.codingnepalweb.com -->
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glassmorphism Login Form | CodingNepal</title>
+  <link rel="stylesheet" href="static/css/style.css">
+  <script>
+    function validateLogin(event) {
+      event.preventDefault(); // Prevent form submission
+
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+
+      // Create the data to send in the POST request
+      const data = {
+        "username": email,
+        "password": password
+      };
+
+      // Send the POST request using Fetch API
+      fetch('/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // If login is successful, redirect
+          window.location.href = "/add-employee-management";
+        } else {
+          // If login fails, show error message
+          alert("Invalid email or password.");
+        }
+      })
+      .catch(error => console.error('Error:', error));
+    }
+  </script>
+</head>
+<body class="register">
+  <div class="wrapper">
+    <form onsubmit="validateLogin(event)">
+      <h2>Login</h2>
+      <div class="input-field">
+        <input type="text" id="email" required>
+        <label>Enter your email</label>
+      </div>
+      <div class="input-field">
+        <input type="password" id="password" required>
+        <label>Enter your password</label>
+      </div>
+      <!-- <div class="forget">
+        <a href="#">Forgot password?</a>
+      </div> -->
+      <button type="submit" class="btn mt-5">Log In</button>
+    </form>
+  </div>
+</body>
+</html>
