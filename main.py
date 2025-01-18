@@ -110,7 +110,7 @@ async def login(login_request: LoginRequest):
         return "Login unsuccessfull"
 
 
-@app.post("/employees/")
+@app.post("/EmployeeManagement")
 def add_employee(employee: EmployeeBase, db: Session = Depends(get_db)):
     new_employee = Employee(
         name=employee.name,
