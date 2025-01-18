@@ -12,15 +12,15 @@ engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Models
 class Employee(Base):
-    __tablename__ = "employee_management"
+    __tablename__ = 'employees'
 
     id = Column(Integer, primary_key=True, index=True)
-    employee_name = Column("EmployeeName", String, index=True)  # Correct column name
-    role = Column("Role", String)  # Correct column name
-    email = Column("Email", String, unique=True)  # Correct column name
-    phone = Column("Phone", String)  # Correct column name
+    name = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    phone = Column(String, nullable=False)
+    status = Column(String, nullable=False)
 
 class TimeLog(Base):
     __tablename__ = "time_logs"
@@ -30,6 +30,7 @@ class TimeLog(Base):
     TimeIn = Column(DateTime, default=datetime.utcnow)
     TimeOut = Column(DateTime, nullable=True)
     Image = Column(Text, nullable=True)
+
 
 # Create tables
 Base.metadata.create_all(bind=engine)

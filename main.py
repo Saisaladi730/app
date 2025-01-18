@@ -65,8 +65,9 @@ class LoginRequest(BaseModel):
     username: str
     password: str
 
-class EmployeeCreate(BaseModel):
-    employee_name: str
+# Pydantic models for validation
+class EmployeeBase(BaseModel):
+    name: str
     role: str
     email: str
     phone: str
@@ -80,69 +81,13 @@ class TimeOutRequest(BaseModel):
     EmpID: int
 
 
-# @app.post("/login")
-# async def login(request: Request):
-#     return templates.TemplateResponse("register.html", {"request": request})
-
-# Create the route for handling login via POST
-# @app.post("/login")
-# async def login_post(login_request: LoginRequest):
-#     # Validate username and password (simple check)
-#     if login_request.username == "admin@example.com" and login_request.password == "admin123":
-#         return {"success": True}  # Successful login response
-#     else:
-#         raise HTTPException(status_code=401, detail="Invalid username or password")
-
-#@app.get("/add-employee-management")
-#async def add_employee_management(request: Request):
-    #return templates.TemplateResponse("add-employee-management.html", {"request": request})
+# Pydantic Model for Report
+class TimeLogReport(BaseModel):
+    time_in: datetime
+    time_out: datetime
+    hours_spent: float
 
 
-
-#@app.post("/add-employee")
-#async def add_employee(employee: Employee):
-    #employees.append(employee.dict())
-    #return {"message": "Employee added successfully", "data": employee}
-
-
-
-#@app.post("/api/employees")
-#async def create_employee(employee: EmployeeCreate, db: SessionLocal = Depends(get_db)):
-    #db_employee = Employee(name=employee.name, email=employee.email, phone=employee.phone, status=employee.status)
-    #db.add(db_employee)
-    #db.commit()
-    #db.refresh(db_employee)
-    #return db_employee
-
-#@app.get("/api/employees")
-#async def get_employees(db: SessionLocal = Depends(get_db)):
-    #employees = db.query(Employee).all()
-    #return employees
-
-
-
-#@app.get("/", response_class=HTMLResponse)
-#async def register(request: Request):
-    #return templates.TemplateResponse("register.html", {"request": request})
-
-
-# Add Employee Management route
-#@app.get("/add-employee-management", response_class=HTMLResponse)
-#async def add_employee_management(request: Request):
-    #return templates.TemplateResponse("add-employee-management.html", {"request": request})
-
-
-#@app.get("/monthly-report")
-#async def monthly_report(request: Request):
-    #return templates.TemplateResponse("monthly-report.html", {"request": request})
-
-
-
-# Route for the Employee Monthly Reports page
-#@app.get("/employee-reports", response_class=HTMLResponse)
-#async def employee_reports(request: Request):
-    # You can pass dynamic data to the template (e.g., employees, months)
-    #return templates.TemplateResponse("employee-reports.html", {"request": request})
 
 # Routes
 @app.post("/login")
@@ -166,29 +111,20 @@ async def login(login_request: LoginRequest):
 
 
 @app.post("/employees/")
-def add_employee(employee: EmployeeCreate, db: Session = Depends(get_db)):
-    # Check if employee already exists (based on email)
-    db_employee = db.query(Employee).filter(Employee.email == employee.email).first()
-    if db_employee:
-        raise HTTPException(status_code=400, detail="Employee with this email already exists.")
-    
-    # Create new employee instance
+def add_employee(employee: EmployeeBase, db: Session = Depends(get_db)):
     new_employee = Employee(
-        employee_name=employee.employee_name,
+        name=employee.name,
         role=employee.role,
         email=employee.email,
         phone=employee.phone,
-        status=employee.status
+        status=employee.status,
     )
-
-    # Add the employee to the database
     db.add(new_employee)
     db.commit()
     db.refresh(new_employee)
-
     return new_employee
 
-@app.get("/employees/", response_model=List[EmployeeCreate])
+@app.get("/employees/", response_model=List[EmployeeBase])
 def get_all_employees(db: Session = Depends(get_db)):
     employees = db.query(Employee).all()
     return employees
@@ -199,6 +135,7 @@ def time_in_employee(emp_id: int, time_in_data: TimeInRequest, db: Session = Dep
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
+    # Store the time-in record with the photo (base64 image)
     time_log = TimeLog(
         EmpID=emp_id,
         Image=time_in_data.Image,
@@ -220,20 +157,13 @@ def time_out_employee(emp_id: int, time_out_data: TimeOutRequest, db: Session = 
     db.commit()
     return {"message": "Time-out recorded", "log_id": time_log.LogID}
 
-
-# Pydantic Model for Report
-class TimeLogReport(BaseModel):
-    time_in: datetime
-    time_out: datetime
-    hours_spent: float
-
 # Generate Monthly Report
 @app.get("/employees", response_model=List[TimeLogReport])
-def generate_report(emp_id: int, month: int, year: int, db: SessionLocal = Depends(get_db)):
+def generate_report(employee_name: str, month: int, year: int, db: SessionLocal = Depends(get_db)):
     logs = (
         db.query(TimeLog)
         .filter(
-            TimeLog.emp_id == emp_id,
+            TimeLog.employee_name == employee_name,
             TimeLog.time_in != None,
             TimeLog.time_out != None,
             TimeLog.time_in.between(
