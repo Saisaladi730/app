@@ -68,7 +68,6 @@ class LoginRequest(BaseModel):
 # Pydantic models for validation
 class EmployeeBase(BaseModel):
     name: str
-    role: str
     email: str
     phone: str
     status: str
@@ -114,7 +113,6 @@ async def login(login_request: LoginRequest):
 def add_employee(employee: EmployeeBase, db: Session = Depends(get_db)):
     new_employee = Employee(
         name=employee.name,
-        role=employee.role,
         email=employee.email,
         phone=employee.phone,
         status=employee.status,
@@ -124,7 +122,7 @@ def add_employee(employee: EmployeeBase, db: Session = Depends(get_db)):
     db.refresh(new_employee)
     return new_employee
 
-@app.get("/employees/", response_model=List[EmployeeBase])
+@app.get("/getEmployees", response_model=List[EmployeeBase])
 def get_all_employees(db: Session = Depends(get_db)):
     employees = db.query(Employee).all()
     return employees
