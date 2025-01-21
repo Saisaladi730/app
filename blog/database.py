@@ -33,7 +33,8 @@ class TimeLog(Base):
 class EmployeeAttendance(Base):
     __tablename__ = "EmployeeAttendance"
 
-    EmpId = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True)
+    EmpId = Column(Integer, index=True)
     EmployeeName = Column(Integer, index=True)
     TimeIn = Column(String, nullable=True)
     TimeOut = Column(String, nullable=True)

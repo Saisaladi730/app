@@ -67,7 +67,6 @@ class LoginRequest(BaseModel):
 
 # Pydantic models for validation
 class EmployeeBase(BaseModel):
-    id: int
     name: str
     email: str
     phone: str
