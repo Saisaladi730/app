@@ -30,6 +30,15 @@ class TimeLog(Base):
     TimeOut = Column(DateTime, nullable=True)
     Image = Column(Text, nullable=True)
 
+class EmployeeAttendance(Base):
+    __tablename__ = "EmployeeAttendance"
+
+    EmpId = Column(Integer, primary_key=True, index=True)
+    EmployeeName = Column(Integer, index=True)
+    TimeIn = Column(String, nullable=True)
+    TimeOut = Column(String, nullable=True)
+    PhotoTimeIn = Column(Text, nullable=True)
+    PhotoTimeOut = Column(Text, nullable=True)
 
 # Create tables
 Base.metadata.create_all(bind=engine)

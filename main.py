@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel
-from blog.database import SessionLocal, Employee, TimeLog
+from blog.database import SessionLocal, Employee, TimeLog ,EmployeeAttendance
 from fastapi.staticfiles import StaticFiles
 from typing import Dict
 import sqlite3
@@ -67,6 +67,7 @@ class LoginRequest(BaseModel):
 
 # Pydantic models for validation
 class EmployeeBase(BaseModel):
+    id: int
     name: str
     email: str
     phone: str
@@ -74,10 +75,13 @@ class EmployeeBase(BaseModel):
 
 class TimeInRequest(BaseModel):
     EmpID: int
-    Image: str  # Base64 encoded image data
+    #Image: str  # Base64 encoded image data
+    timein : str
+    employeename : str
 
 class TimeOutRequest(BaseModel):
     EmpID: int
+    timeout : str
 
 
 # Pydantic Model for Report
@@ -86,6 +90,9 @@ class TimeLogReport(BaseModel):
     time_out: datetime
     hours_spent: float
 
+class EmployeeTimeInTimeOut(BaseModel):
+    timein : Optional[str]
+    timeout : Optional[str]
 
 
 # Routes
@@ -127,33 +134,63 @@ def get_all_employees(db: Session = Depends(get_db)):
     employees = db.query(Employee).all()
     return employees
 
-@app.post("/employees/{emp_id}/time-in")
-def time_in_employee(emp_id: int, time_in_data: TimeInRequest, db: Session = Depends(get_db)):
-    employee = db.query(Employee).filter(Employee.EmpID == emp_id).first()
+@app.post("/employees/time-in")
+def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)):
+    employee = db.query(Employee).filter(Employee.id == time_in_data.EmpID).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     
     # Store the time-in record with the photo (base64 image)
-    time_log = TimeLog(
-        EmpID=emp_id,
-        Image=time_in_data.Image,
+    # time_log = TimeLog(
+    #     EmpID=emp_id,
+    #     Image=time_in_data.Image,s
+    # )
+    time_log = EmployeeAttendance(
+        EmpId=time_in_data.EmpID,
+        # PhotoTimeIn=time_in_data.Image,
+        TimeIn = time_in_data.timein,
+        EmployeeName = time_in_data.employeename
     )
     db.add(time_log)
     db.commit()
     db.refresh(time_log)
-    return {"message": "Time-in recorded", "log_id": time_log.LogID}
+    return {"message": "Time-in recorded", "log_id": time_log.EmpId}
 
-@app.post("/employees/{emp_id}/time-out")
-def time_out_employee(emp_id: int, time_out_data: TimeOutRequest, db: Session = Depends(get_db)):
+@app.post("/employees/time-out")
+def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_db)):
     # Find the last time-in record without a time-out
-    time_log = db.query(TimeLog).filter(TimeLog.EmpID == emp_id, TimeLog.TimeOut == None).first()
+    time_log = db.query(EmployeeAttendance).filter(EmployeeAttendance.EmpId == time_out_data.EmpID, EmployeeAttendance.TimeOut == None).first()
     if not time_log:
         raise HTTPException(status_code=404, detail="No active time-in record found")
     
     # Set the time-out
-    time_log.TimeOut = datetime.utcnow()
+    time_log.TimeOut = time_out_data.timeout
     db.commit()
-    return {"message": "Time-out recorded", "log_id": time_log.LogID}
+    return {"message": "Time-out recorded", "log_id": time_log.EmpId}
+
+@app.get("/GetEmployeesTimeInTimeOut")
+def time_out_employee(db: Session = Depends(get_db)):
+    employees = db.query(EmployeeAttendance).all()
+    return employees
+    # conn = sqlite3.connect("employees.db")
+    # cursor = conn.cursor()
+
+    # # Fetch all rows
+    # cursor.execute("SELECT id, employee_id, timein, timeout FROM EmployeeAttendance")
+    # rows = cursor.fetchall()
+
+    # # Convert rows into a list of dictionaries
+    # result = []
+    # for row in rows:
+    #     result.append({
+    #         "id": row[0],
+    #         "employee_id": row[1],
+    #         "timein": row[2] if row[2] else None,  # Convert datetime to ISO string
+    #         "timeout": row[3] if row[3] else None,
+    #         # "photo": row[4].hex() if row[4] else None,  # Convert BLOB to hex string (or handle as needed)
+    #     })
+    # conn.close()
+    # return result
 
 # Generate Monthly Report
 @app.get("/employees", response_model=List[TimeLogReport])
