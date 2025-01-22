@@ -67,6 +67,13 @@ class LoginRequest(BaseModel):
 
 # Pydantic models for validation
 class EmployeeBase(BaseModel):
+    id : int
+    name: str
+    email: str
+    phone: str
+    status: str
+
+class EmployeeBase1(BaseModel):
     name: str
     email: str
     phone: str
@@ -74,13 +81,14 @@ class EmployeeBase(BaseModel):
 
 class TimeInRequest(BaseModel):
     EmpID: int
-    #Image: str  # Base64 encoded image data
+    Image: str  # Base64 encoded image data
     timein : str
     employeename : str
 
 class TimeOutRequest(BaseModel):
     EmpID: int
     timeout : str
+    image : str
 
 
 # Pydantic Model for Report
@@ -116,7 +124,7 @@ async def login(login_request: LoginRequest):
 
 
 @app.post("/EmployeeManagement")
-def add_employee(employee: EmployeeBase, db: Session = Depends(get_db)):
+def add_employee(employee: EmployeeBase1, db: Session = Depends(get_db)):
     new_employee = Employee(
         name=employee.name,
         email=employee.email,
@@ -146,7 +154,7 @@ def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)
     # )
     time_log = EmployeeAttendance(
         EmpId=time_in_data.EmpID,
-        # PhotoTimeIn=time_in_data.Image,
+        PhotoTimeIn=time_in_data.Image,
         TimeIn = time_in_data.timein,
         EmployeeName = time_in_data.employeename
     )
@@ -164,6 +172,7 @@ def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_d
     
     # Set the time-out
     time_log.TimeOut = time_out_data.timeout
+    time_log.PhotoTimeOut = time_out_data.image
     db.commit()
     return {"message": "Time-out recorded", "log_id": time_log.EmpId}
 
