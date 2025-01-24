@@ -21,14 +21,8 @@ class Employee(Base):
     phone = Column(String, nullable=False)
     status = Column(String, nullable=False)
 
-class TimeLog(Base):
-    __tablename__ = "time_logs"
 
-    LogID = Column(Integer, primary_key=True, index=True)
-    EmpID = Column(Integer, index=True)
-    TimeIn = Column(DateTime, default=datetime.utcnow)
-    TimeOut = Column(DateTime, nullable=True)
-    Image = Column(Text, nullable=True)
+
 
 class EmployeeAttendance(Base):
     __tablename__ = "EmployeeAttendance"
@@ -40,6 +34,21 @@ class EmployeeAttendance(Base):
     TimeOut = Column(String, nullable=True)
     PhotoTimeIn = Column(Text, nullable=True)
     PhotoTimeOut = Column(Text, nullable=True)
+
+class Login(Base):
+    __tablename__ = "admin"
+    username = Column(String, primary_key=True)
+    password = Column(String, primary_key=True)
+
+class TimeLog(Base):
+    __tablename__ = "time_logs"
+
+    LogID = Column(Integer, primary_key=True, index=True)
+    EmpID = Column(Integer, index=True)
+    TimeIn = Column(DateTime, default=datetime.utcnow)
+    TimeOut = Column(DateTime, nullable=True)
+    Image = Column(Text, nullable=True)
+
 
 # Create tables
 Base.metadata.create_all(bind=engine)

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel
-from blog.database import SessionLocal, Employee, TimeLog ,EmployeeAttendance
+from blog.database import SessionLocal, Employee, TimeLog, EmployeeAttendance
 from fastapi.staticfiles import StaticFiles
 from typing import Dict
 import sqlite3
@@ -27,8 +27,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-
 def get_db():
     db = SessionLocal()
     try:
@@ -36,29 +34,6 @@ def get_db():
     finally:
         db.close()
 
-# Login Database Setup
-def init_db():
-    conn = sqlite3.connect("admin.db")
-    cursor = conn.cursor()
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-        """
-    )
-    cursor.execute(
-        """
-        INSERT OR IGNORE INTO admins (username, password)
-        VALUES ('admin', 'password123')
-        """
-    )
-    conn.commit()
-    conn.close()
-
-init_db()
 
 # Pydantic Models
 class LoginRequest(BaseModel):
@@ -108,10 +83,10 @@ async def login(login_request: LoginRequest):
     username = login_request.username
     password = login_request.password
 
-    conn = sqlite3.connect("admin.db")
+    conn = sqlite3.connect("employees.db")
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT * FROM admins WHERE username = ? AND password = ?", (username, password)
+        "SELECT * FROM admin WHERE username = ? AND password = ?", (username, password)
     )
     admin = cursor.fetchone()
     conn.close()
@@ -141,17 +116,34 @@ def get_all_employees(db: Session = Depends(get_db)):
     employees = db.query(Employee).all()
     return employees
 
+@app.put("/update-employees")
+def update_employees(employee: EmployeeBase, db: Session = Depends(get_db)):
+    conn = sqlite3.connect("employees.db")
+    cursor = conn.cursor()
+
+    try:
+        # Update employee details in the database
+        cursor.execute(
+            """
+            UPDATE employees 
+            SET name = ?, email = ?, phone = ?, status = ? 
+            WHERE id = ?
+            """,
+            (employee.name, employee.email, employee.phone, employee.status, employee.id),
+        )
+        conn.commit()  # Save changes to the database
+        return {"message": "Employee updated successfully."}
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        conn.close()
+
+
 @app.post("/employees/time-in")
 def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)):
     employee = db.query(Employee).filter(Employee.id == time_in_data.EmpID).first()
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
-    
-    # Store the time-in record with the photo (base64 image)
-    # time_log = TimeLog(
-    #     EmpID=emp_id,
-    #     Image=time_in_data.Image,s
-    # )
     time_log = EmployeeAttendance(
         EmpId=time_in_data.EmpID,
         PhotoTimeIn=time_in_data.Image,
@@ -180,29 +172,11 @@ def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_d
 def time_out_employee(db: Session = Depends(get_db)):
     employees = db.query(EmployeeAttendance).all()
     return employees
-    # conn = sqlite3.connect("employees.db")
-    # cursor = conn.cursor()
-
-    # # Fetch all rows
-    # cursor.execute("SELECT id, employee_id, timein, timeout FROM EmployeeAttendance")
-    # rows = cursor.fetchall()
-
-    # # Convert rows into a list of dictionaries
-    # result = []
-    # for row in rows:
-    #     result.append({
-    #         "id": row[0],
-    #         "employee_id": row[1],
-    #         "timein": row[2] if row[2] else None,  # Convert datetime to ISO string
-    #         "timeout": row[3] if row[3] else None,
-    #         # "photo": row[4].hex() if row[4] else None,  # Convert BLOB to hex string (or handle as needed)
-    #     })
-    # conn.close()
-    # return result
-
+    
+    
 # Generate Monthly Report
 @app.get("/employees", response_model=List[TimeLogReport])
-def generate_report(employee_name: str, month: int, year: int, db: SessionLocal = Depends(get_db)):
+def generate_report(employee_name: str, month: int, year: int, db: Session = Depends(get_db)):
     logs = (
         db.query(TimeLog)
         .filter(
