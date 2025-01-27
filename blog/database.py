@@ -16,7 +16,7 @@ class Employee(Base):
     __tablename__ = 'employees'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=True)
     email = Column(String, unique=True, nullable=False)
     phone = Column(String, nullable=False)
     status = Column(String, nullable=False)
