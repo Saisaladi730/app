@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
 from pydantic import BaseModel
-from blog.database import SessionLocal, Employee, TimeLog, EmployeeAttendance
+from blog.database import SessionLocal, Employee, EmployeeAttendance
 from fastapi.staticfiles import StaticFiles
 from typing import Dict
 import sqlite3
@@ -172,30 +172,10 @@ def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_d
 def time_out_employee(db: Session = Depends(get_db)):
     employees = db.query(EmployeeAttendance).all()
     return employees
+
+
+
+
+
+
     
-    
-# Generate Monthly Report
-@app.get("/employees", response_model=List[TimeLogReport])
-def generate_report(employee_name: str, month: int, year: int, db: Session = Depends(get_db)):
-    logs = (
-        db.query(TimeLog)
-        .filter(
-            TimeLog.employee_name == employee_name,
-            TimeLog.time_in != None,
-            TimeLog.time_out != None,
-            TimeLog.time_in.between(
-                datetime(year, month, 1),
-                datetime(year, month + 1, 1) if month < 12 else datetime(year + 1, 1, 1),
-            ),
-        )
-        .all()
-    )
-    report = [
-        TimeLogReport(
-            time_in=log.time_in,
-            time_out=log.time_out,
-            hours_spent=(log.time_out - log.time_in).total_seconds() / 3600,
-        )
-        for log in logs
-    ]
-    return report
