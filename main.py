@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from datetime import datetime
 from typing import List
@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Or specify specific domains
+    allow_origins=["*"],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,12 +35,10 @@ def get_db():
         db.close()
 
 
-# Pydantic Models
 class LoginRequest(BaseModel):
     username: str
     password: str
 
-# Pydantic models for validation
 class EmployeeBase(BaseModel):
     id : int
     name: str
@@ -56,28 +54,18 @@ class EmployeeBase1(BaseModel):
 
 class TimeInRequest(BaseModel):
     EmpID: int
-    Image: str  # Base64 encoded image data
-    timein : str
+    Image: str 
+    #timein: str
     employeename : str
 
 class TimeOutRequest(BaseModel):
     EmpID: int
-    timeout : str
+    #imeout : str
     image : str
 
 
-# Pydantic Model for Report
-class TimeLogReport(BaseModel):
-    time_in: datetime
-    time_out: datetime
-    hours_spent: float
-
-class EmployeeTimeInTimeOut(BaseModel):
-    timein : Optional[str]
-    timeout : Optional[str]
 
 
-# Routes
 @app.post("/login")
 async def login(login_request: LoginRequest):
     username = login_request.username
@@ -90,39 +78,43 @@ async def login(login_request: LoginRequest):
     )
     admin = cursor.fetchone()
     conn.close()
-
     if admin:
         return "Login successfull"
     else:
-        # raise HTTPException(status_code=401, detail="Invalid username or password")
         return "Login unsuccessfull"
 
 
 @app.post("/EmployeeManagement")
 def add_employee(employee: EmployeeBase1, db: Session = Depends(get_db)):
+    existing_employee = db.query(Employee).filter(Employee.email == employee.email).first()
+    if existing_employee:
+        return "Employee with this email already exists"
     new_employee = Employee(
         name=employee.name,
         email=employee.email,
         phone=employee.phone,
         status=employee.status,
-    )
+        )
+    
     db.add(new_employee)
     db.commit()
     db.refresh(new_employee)
-    return new_employee
-
+    return "New Employee Added Successfully"
+    
+    
+    
+        
 @app.get("/getEmployees", response_model=List[EmployeeBase])
 def get_all_employees(db: Session = Depends(get_db)):
     employees = db.query(Employee).all()
     return employees
 
+
 @app.put("/update-employees")
 def update_employees(employee: EmployeeBase, db: Session = Depends(get_db)):
     conn = sqlite3.connect("employees.db")
     cursor = conn.cursor()
-
     try:
-        # Update employee details in the database
         cursor.execute(
             """
             UPDATE employees 
@@ -131,7 +123,7 @@ def update_employees(employee: EmployeeBase, db: Session = Depends(get_db)):
             """,
             (employee.name, employee.email, employee.phone, employee.status, employee.id),
         )
-        conn.commit()  # Save changes to the database
+        conn.commit()  
         return {"message": "Employee updated successfully."}
     except Exception as e:
         return {"error": str(e)}
@@ -147,7 +139,7 @@ def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)
     time_log = EmployeeAttendance(
         EmpId=time_in_data.EmpID,
         PhotoTimeIn=time_in_data.Image,
-        TimeIn = time_in_data.timein,
+        TimeIn = datetime.now(),
         EmployeeName = time_in_data.employeename
     )
     db.add(time_log)
@@ -157,13 +149,11 @@ def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)
 
 @app.post("/employees/time-out")
 def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_db)):
-    # Find the last time-in record without a time-out
     time_log = db.query(EmployeeAttendance).filter(EmployeeAttendance.EmpId == time_out_data.EmpID, EmployeeAttendance.TimeOut == None).first()
     if not time_log:
         raise HTTPException(status_code=404, detail="No active time-in record found")
     
-    # Set the time-out
-    time_log.TimeOut = time_out_data.timeout
+    time_log.TimeOut = datetime.now()
     time_log.PhotoTimeOut = time_out_data.image
     db.commit()
     return {"message": "Time-out recorded", "log_id": time_log.EmpId}

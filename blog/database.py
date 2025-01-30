@@ -6,7 +6,6 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import base64
 
-# Database setup
 DATABASE_URL = "sqlite:///./employees.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -24,7 +23,7 @@ class Employee(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=True)
-    email = Column(String, unique=True, nullable=False)
+    email = Column(String, unique=True, nullable=True)
     phone = Column(String, nullable=False)
     status = Column(String, nullable=False)
 
@@ -35,8 +34,8 @@ class EmployeeAttendance(Base):
     id = Column(Integer, primary_key=True, index=True)
     EmpId = Column(Integer, index=True)
     EmployeeName = Column(Integer, index=True)
-    TimeIn = Column(String, nullable=True)
-    TimeOut = Column(String, nullable=True)
+    TimeIn = Column(DateTime, default=datetime.now())
+    TimeOut = Column(DateTime, nullable=True)
     PhotoTimeIn = Column(Text, nullable=True)
     PhotoTimeOut = Column(Text, nullable=True)
 
