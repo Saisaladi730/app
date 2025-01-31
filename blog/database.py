@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Text
+from sqlalchemy import create_engine, Column, Integer, String, Boolean, DateTime, Text, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import base64
@@ -22,9 +22,9 @@ class Employee(Base):
     __tablename__ = 'employees'
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=True)
-    email = Column(String, unique=True, nullable=True)
-    phone = Column(String, nullable=False)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    phone = Column(String,  nullable=False)
     status = Column(String, nullable=False)
 
 
@@ -33,7 +33,7 @@ class EmployeeAttendance(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     EmpId = Column(Integer, index=True)
-    EmployeeName = Column(Integer, index=True)
+    EmployeeName = Column(String, index=True)
     TimeIn = Column(DateTime, default=datetime.now())
     TimeOut = Column(DateTime, nullable=True)
     PhotoTimeIn = Column(Text, nullable=True)

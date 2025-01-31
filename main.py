@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from datetime import datetime
+from datetime import datetime, date
 from typing import List
 from pydantic import BaseModel
 from blog.database import SessionLocal, Employee, EmployeeAttendance
@@ -88,7 +88,7 @@ async def login(login_request: LoginRequest):
 def add_employee(employee: EmployeeBase1, db: Session = Depends(get_db)):
     existing_employee = db.query(Employee).filter(Employee.email == employee.email).first()
     if existing_employee:
-        return "Employee with this email already exists"
+        return "Employee already exists this mail."
     new_employee = Employee(
         name=employee.name,
         email=employee.email,
@@ -124,7 +124,7 @@ def update_employees(employee: EmployeeBase, db: Session = Depends(get_db)):
             (employee.name, employee.email, employee.phone, employee.status, employee.id),
         )
         conn.commit()  
-        return {"message": "Employee updated successfully."}
+        return "Employee updated successfully."
     except Exception as e:
         return {"error": str(e)}
     finally:
@@ -135,7 +135,10 @@ def update_employees(employee: EmployeeBase, db: Session = Depends(get_db)):
 def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)):
     employee = db.query(Employee).filter(Employee.id == time_in_data.EmpID).first()
     if not employee:
-        raise HTTPException(status_code=404, detail="Employee not found")
+        raise "Employee not found"
+    exist_employee = db.query(EmployeeAttendance).filter(EmployeeAttendance.EmpId == time_in_data.EmpID, EmployeeAttendance.TimeIn != None).first()
+    if exist_employee:
+        return "Already you are timein"
     time_log = EmployeeAttendance(
         EmpId=time_in_data.EmpID,
         PhotoTimeIn=time_in_data.Image,
