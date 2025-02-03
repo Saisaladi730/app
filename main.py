@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from datetime import datetime, date
 from typing import List
 from pydantic import BaseModel
@@ -136,30 +137,38 @@ def time_in_employee( time_in_data: TimeInRequest, db: Session = Depends(get_db)
     employee = db.query(Employee).filter(Employee.id == time_in_data.EmpID).first()
     if not employee:
         raise "Employee not found"
-    exist_employee = db.query(EmployeeAttendance).filter(EmployeeAttendance.EmpId == time_in_data.EmpID, EmployeeAttendance.TimeIn != None).first()
-    if exist_employee:
-        return "Already you are timein"
-    time_log = EmployeeAttendance(
+    result = db.execute(text("SELECT TimeIn,TimeOut FROM EmployeeAttendance WHERE EmpID = :emp_id AND TimeIn IS NOT NULL And TimeOut IS NULL"), {"emp_id": time_in_data.EmpID}).fetchone()
+    if result:
+       return "Time in already logged"
+    else:
+     time_log = EmployeeAttendance(
         EmpId=time_in_data.EmpID,
         PhotoTimeIn=time_in_data.Image,
         TimeIn = datetime.now(),
         EmployeeName = time_in_data.employeename
-    )
-    db.add(time_log)
-    db.commit()
-    db.refresh(time_log)
-    return {"message": "Time-in recorded", "log_id": time_log.EmpId}
+     )
+     db.add(time_log)
+     db.commit()
+     db.refresh(time_log)
+     return "Time in logged successfully"
 
 @app.post("/employees/time-out")
 def time_out_employee(time_out_data: TimeOutRequest, db: Session = Depends(get_db)):
-    time_log = db.query(EmployeeAttendance).filter(EmployeeAttendance.EmpId == time_out_data.EmpID, EmployeeAttendance.TimeOut == None).first()
+    today = date.today()
+    time_log = db.query(EmployeeAttendance).filter(
+        EmployeeAttendance.EmpId == time_out_data.EmpID,
+        EmployeeAttendance.TimeIn != None,  
+    ).order_by(EmployeeAttendance.TimeIn.desc()).first()
+
     if not time_log:
-        raise HTTPException(status_code=404, detail="No active time-in record found")
-    
+        raise "No active time-in record found for today"
+
     time_log.TimeOut = datetime.now()
-    time_log.PhotoTimeOut = time_out_data.image
+    time_log.PhotoTimeOut = time_out_data.image 
+
     db.commit()
-    return {"message": "Time-out recorded", "log_id": time_log.EmpId}
+    db.refresh(time_log)
+    return {"message": "Time-out recorded", "log_id": time_log.EmpId, "logout_time": time_log.TimeOut}
 
 @app.get("/GetEmployeesTimeInTimeOut")
 def time_out_employee(db: Session = Depends(get_db)):
